@@ -2,8 +2,8 @@ name: "Build Docker Image"
 
 on:
   push:
-    tags:
-      - app/v*.*.*
+    branches:
+      - master
 
 jobs:
   docker:
