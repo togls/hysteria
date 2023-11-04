@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/caddyserver/certmagic"
+	"github.com/libdns/cloudflare"
 	"github.com/mholt/acmez/acme"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -267,7 +269,8 @@ func (c *serverConfig) fillTLSConfig(hyConfig *server.Config) error {
 			Storage:            &certmagic.FileStorage{Path: dataDir},
 			Logger:             logger,
 		}
-		cmIssuer := certmagic.NewACMEIssuer(cmCfg, certmagic.ACMEIssuer{
+
+		acmeIssuer := certmagic.ACMEIssuer{
 			Email:                   c.ACME.Email,
 			Agreed:                  true,
 			DisableHTTPChallenge:    c.ACME.DisableHTTP,
@@ -275,7 +278,22 @@ func (c *serverConfig) fillTLSConfig(hyConfig *server.Config) error {
 			AltHTTPPort:             c.ACME.AltHTTPPort,
 			AltTLSALPNPort:          c.ACME.AltTLSALPNPort,
 			Logger:                  logger,
-		})
+		}
+
+		token, ok := os.LookupEnv("CLOUDFLARE_API_TOKEN")
+		if ok {
+			dnsSolver := certmagic.DNS01Solver{
+				DNSProvider: &cloudflare.Provider{
+					APIToken: token,
+				},
+			}
+
+			acmeIssuer.DNS01Solver = &dnsSolver
+			acmeIssuer.DisableHTTPChallenge = false
+			acmeIssuer.DisableTLSALPNChallenge = false
+		}
+
+		cmIssuer := certmagic.NewACMEIssuer(cmCfg, acmeIssuer)
 		switch strings.ToLower(c.ACME.CA) {
 		case "letsencrypt", "le", "":
 			// Default to Let's Encrypt
