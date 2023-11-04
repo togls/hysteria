@@ -38,7 +38,7 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: idul/hysteria:latest,idul/hysteria:v2,idul/hysteria:${{ steps.get_version.outputs.version }}
+          tags: idul/hysteria:latest
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
